@@ -6,6 +6,42 @@ body {
     background-color: #f5f5f5;
   }
   
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .connection-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .connection-status.offline {
+    background-color: #e74c3c;
+  }
+  
+  .sync-banner {
+    background-color: #f8f4e5;
+    border: 1px solid #f0e0a2;
+    padding: 8px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  
+  .sync-btn {
+    background-color: #3498db;
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  
   .container {
     width: 500px;
     padding: 20px;

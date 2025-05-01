@@ -9,7 +9,15 @@
 </head>
 <body>
   <div class="container">
-    <h1>TestRail Productivity Extension</h1>
+    <div class="header-bar">
+      <h1>TestRail Productivity Extension</h1>
+      <div id="connection-status" class="connection-status">Online</div>
+    </div>
+    
+    <div id="sync-banner" class="sync-banner hidden">
+      <span id="pending-count">0</span> pending updates
+      <button id="sync-now-btn" class="sync-btn">Sync Now</button>
+    </div>
     
     <div class="auth-section">
       <h2>Authentication</h2>

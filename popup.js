@@ -1,5 +1,16 @@
 // popup.js
 document.addEventListener('DOMContentLoaded', () => {
+    // Online/offline status tracking
+    let isOnline = navigator.onLine;
+    window.addEventListener('online', () => {
+      isOnline = true;
+      showConnectionStatus('Online', true);
+      syncPendingUpdates();
+    });
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      showConnectionStatus('Offline', false);
+    });
     // DOM elements
     const testrailUrlInput = document.getElementById('testrail-url');
     const authTokenInput = document.getElementById('auth-token');
@@ -10,12 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingDiv = document.getElementById('loading');
     const errorMessageDiv = document.getElementById('error-message');
     const testCasesContainer = document.getElementById('test-cases-container');
+    const connectionStatusDiv = document.getElementById('connection-status');
+    const syncBannerDiv = document.getElementById('sync-banner');
+    const pendingCountSpan = document.getElementById('pending-count');
+    const syncNowBtn = document.getElementById('sync-now-btn');
   
-    // Load saved credentials
-    chrome.storage.local.get(['testrailUrl', 'authToken', 'testRunId'], (result) => {
+    // Load saved credentials and show connection status
+    chrome.storage.local.get(['testrailUrl', 'authToken', 'testRunId', 'pendingUpdates'], (result) => {
       if (result.testrailUrl) testrailUrlInput.value = result.testrailUrl;
       if (result.authToken) authTokenInput.value = result.authToken;
       if (result.testRunId) testRunIdInput.value = result.testRunId;
+      
+      // Initialize connection status
+      showConnectionStatus(isOnline ? 'Online' : 'Offline', isOnline);
+      
+      // Check for pending updates
+      const pendingUpdates = result.pendingUpdates || [];
+      updatePendingBanner(pendingUpdates.length);
     });
   
     // Save credentials
@@ -238,52 +260,119 @@ document.addEventListener('DOMContentLoaded', () => {
       return button;
     }
   
-    // Update test case status
+    // Update test case status with offline support
     async function updateTestCaseStatus(testrailUrl, authToken, testRunId, caseId, statusId, button) {
       const originalText = button.textContent;
       button.textContent = 'Updating...';
       button.disabled = true;
       
-      try {
-        const url = `${testrailUrl}/index.php?/api/v2/add_result_for_case/${testRunId}/${caseId}`;
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${authToken}`
-          },
-          body: JSON.stringify({
-            status_id: statusId
-          })
-        });
-  
-        if (!response.ok) {
-          throw new Error(`API responded with status ${response.status}`);
+      const updateData = {
+        testrailUrl,
+        authToken,
+        testRunId,
+        caseId,
+        statusId,
+        timestamp: new Date().getTime()
+      };
+      
+      // If online, try to update immediately
+      if (isOnline) {
+        try {
+          await sendUpdateToTestrail(updateData);
+          
+          // Show success message
+          const testCaseElement = button.closest('.test-case');
+          showSuccessMessage(testCaseElement, 'Status updated successfully!');
+        } catch (error) {
+          // If update fails, store for later sync
+          await addToPendingUpdates(updateData);
+          showError(`Update failed, saved for later sync: ${error.message}`);
         }
-  
-        // Show success message
+      } else {
+        // If offline, add to pending updates
+        await addToPendingUpdates(updateData);
+        
+        // Show offline notification
         const testCaseElement = button.closest('.test-case');
-        const successMessage = document.createElement('div');
-        successMessage.className = 'success-message';
-        successMessage.textContent = `Status updated successfully!`;
-        
-        // Remove existing success messages if any
-        const existingMessages = testCaseElement.querySelectorAll('.success-message');
-        existingMessages.forEach(msg => msg.remove());
-        
-        testCaseElement.appendChild(successMessage);
-        
-        // Remove success message after 3 seconds
-        setTimeout(() => {
-          successMessage.remove();
-        }, 3000);
-        
-      } catch (error) {
-        showError(`Failed to update test case status: ${error.message}`);
-      } finally {
-        button.textContent = originalText;
-        button.disabled = false;
+        showSuccessMessage(testCaseElement, 'Update saved for sync when online');
+      }
+      
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+    
+    // Send update to TestRail API
+    async function sendUpdateToTestrail(updateData) {
+      const url = `${updateData.testrailUrl}/index.php?/api/v2/add_result_for_case/${updateData.testRunId}/${updateData.caseId}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${updateData.authToken}`
+        },
+        body: JSON.stringify({
+          status_id: updateData.statusId
+        })
+      });
+  
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+      
+      return response.json();
+    }
+    
+    // Add update to pending queue
+    async function addToPendingUpdates(updateData) {
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['pendingUpdates'], (result) => {
+          const pendingUpdates = result.pendingUpdates || [];
+          pendingUpdates.push(updateData);
+          
+          chrome.storage.local.set({ pendingUpdates }, () => {
+            updatePendingBanner(pendingUpdates.length);
+            resolve();
+          });
+        });
+      });
+    }
+    
+    // Update pending updates banner
+    function updatePendingBanner(count) {
+      if (count > 0) {
+        pendingCountSpan.textContent = count;
+        syncBannerDiv.classList.remove('hidden');
+      } else {
+        syncBannerDiv.classList.add('hidden');
+      }
+    }
+    
+    // Show success message
+    function showSuccessMessage(container, message) {
+      const successMessage = document.createElement('div');
+      successMessage.className = 'success-message';
+      successMessage.textContent = message;
+      
+      // Remove existing success messages if any
+      const existingMessages = container.querySelectorAll('.success-message');
+      existingMessages.forEach(msg => msg.remove());
+      
+      container.appendChild(successMessage);
+      
+      // Remove success message after 3 seconds
+      setTimeout(() => {
+        successMessage.remove();
+      }, 3000);
+    }
+    
+    // Show connection status
+    function showConnectionStatus(status, isOnline) {
+      connectionStatusDiv.textContent = status;
+      if (isOnline) {
+        connectionStatusDiv.classList.remove('offline');
+      } else {
+        connectionStatusDiv.classList.add('offline');
       }
     }
   
@@ -305,4 +394,58 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearTestCasesContainer() {
       testCasesContainer.innerHTML = '';
     }
+    
+    // Sync pending updates with TestRail
+    async function syncPendingUpdates() {
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['pendingUpdates'], async (result) => {
+          const pendingUpdates = result.pendingUpdates || [];
+          
+          if (pendingUpdates.length === 0) {
+            resolve();
+            return;
+          }
+          
+          let successCount = 0;
+          let remainingUpdates = [];
+          
+          for (const update of pendingUpdates) {
+            try {
+              await sendUpdateToTestrail(update);
+              successCount++;
+            } catch (error) {
+              console.error('Failed to sync update:', error);
+              remainingUpdates.push(update);
+            }
+          }
+          
+          // Save remaining updates
+          chrome.storage.local.set({ pendingUpdates: remainingUpdates }, () => {
+            updatePendingBanner(remainingUpdates.length);
+            
+            if (successCount > 0) {
+              showError(`Successfully synced ${successCount} updates. ${remainingUpdates.length} remaining.`);
+              setTimeout(hideError, 3000);
+            }
+            
+            resolve();
+          });
+        });
+      });
+    }
+    
+    // Setup sync button
+    syncNowBtn.addEventListener('click', () => {
+      if (isOnline) {
+        syncNowBtn.textContent = 'Syncing...';
+        syncNowBtn.disabled = true;
+        
+        syncPendingUpdates().then(() => {
+          syncNowBtn.textContent = 'Sync Now';
+          syncNowBtn.disabled = false;
+        });
+      } else {
+        showError('Cannot sync while offline. Please connect to the internet first.');
+      }
+    });
   });
