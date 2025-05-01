@@ -1,0 +1,46 @@
+<!-- popup.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestRail Productivity Extension</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>TestRail Productivity Extension</h1>
+    
+    <div class="auth-section">
+      <h2>Authentication</h2>
+      <div class="input-group">
+        <label for="testrail-url">TestRail URL:</label>
+        <input type="text" id="testrail-url" placeholder="e.g., https://flipid.testrail.io">
+      </div>
+      <div class="input-group">
+        <label for="auth-token">Auth Token:</label>
+        <input type="password" id="auth-token" placeholder="Base64 encoded username:apikey">
+      </div>
+      <button id="save-auth">Save Credentials</button>
+      <div id="auth-status"></div>
+    </div>
+
+    <div class="testrun-section">
+      <h2>Test Run</h2>
+      <div class="input-group">
+        <label for="test-run-id">Test Run ID:</label>
+        <input type="text" id="test-run-id" placeholder="e.g., 18069">
+      </div>
+      <button id="fetch-tests">Fetch Test Cases</button>
+    </div>
+
+    <div class="tests-section">
+      <h2>Test Cases</h2>
+      <div id="loading" class="hidden">Loading...</div>
+      <div id="error-message" class="hidden error"></div>
+      <div id="test-cases-container"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
