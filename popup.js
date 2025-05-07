@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncBannerDiv = document.getElementById('sync-banner');
     const pendingCountSpan = document.getElementById('pending-count');
     const syncNowBtn = document.getElementById('sync-now-btn');
+    const testRunStatsDiv = document.getElementById('test-run-stats');
+    const statsContainerDiv = document.getElementById('stats-container');
   
     // Load saved credentials and show connection status
     chrome.storage.local.get(['testrailUrl', 'authToken', 'testRunId', 'pendingUpdates'], (result) => {
@@ -83,12 +85,86 @@ document.addEventListener('DOMContentLoaded', () => {
         }
   
         try {
+          // First fetch the test run details to get statistics
+          await fetchAndDisplayTestRunStats(result.testrailUrl, result.authToken, testRunId);
+          
+          // Then fetch and display test cases
           await fetchAndDisplayTestCases(result.testrailUrl, result.authToken, testRunId);
         } catch (error) {
           showError(`Error: ${error.message}`);
         }
       });
     });
+    
+    // New function to fetch and display test run statistics
+    async function fetchAndDisplayTestRunStats(testrailUrl, authToken, testRunId) {
+      showLoading(true);
+      hideError();
+      
+      try {
+        const url = `${testrailUrl}/index.php?/api/v2/get_run/${testRunId}`;
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${authToken}`
+          }
+        });
+  
+        if (!response.ok) {
+          throw new Error(`API responded with status ${response.status}`);
+        }
+  
+        const data = await response.json();
+        displayTestRunStats(data);
+      } catch (error) {
+        showError(`Failed to fetch test run statistics: ${error.message}`);
+        testRunStatsDiv.classList.add('hidden');
+      }
+    }
+    
+    // Function to display test run statistics
+    function displayTestRunStats(testRun) {
+      // Calculate total tests
+      const totalTests = testRun.passed_count + testRun.failed_count + 
+                         testRun.blocked_count + testRun.untested_count + 
+                         testRun.retest_count;
+      
+      if (totalTests === 0) {
+        testRunStatsDiv.classList.add('hidden');
+        return;
+      }
+      
+      // Calculate percentages
+      const passPercentage = Math.round((testRun.passed_count / totalTests) * 100) || 0;
+      const failPercentage = Math.round((testRun.failed_count / totalTests) * 100) || 0;
+      const otherPercentage = 100 - passPercentage - failPercentage;
+      
+      // Create stats HTML
+      statsContainerDiv.innerHTML = `
+        <div class="test-stats">
+          <div class="stats-title">${testRun.name}</div>
+          <div class="stats-container">
+            <div class="stat-item">
+              <div class="stat-value stat-pass">${passPercentage}%</div>
+              <div class="stat-label">Passed (${testRun.passed_count})</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value stat-fail">${failPercentage}%</div>
+              <div class="stat-label">Failed (${testRun.failed_count})</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value stat-other">${otherPercentage}%</div>
+              <div class="stat-label">Other (${testRun.blocked_count + testRun.untested_count + testRun.retest_count})</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Show the stats section
+      testRunStatsDiv.classList.remove('hidden');
+    }
   
     // Fetch and display test cases
     async function fetchAndDisplayTestCases(testrailUrl, authToken, testRunId) {

@@ -1,14 +1,21 @@
 // Handle API requests
 async function getTestCases(testRunId) {
-    const auth = btoa("sarah.ramadhanip@flip.id:C7ysebutvZkf2bM");
-    const url = `https://flipid.testrail.io/index.php?/api/v2/get_tests/${testRunId}`;
+    const storage = await chrome.storage.local.get(['testrailUrl', 'authToken']);
+    if (!storage.testrailUrl || !storage.authToken) {
+        throw new Error("TestRail URL and auth token must be configured");
+    }
+    
+    const url = `${storage.testrailUrl}/index.php?/api/v2/get_tests/${testRunId}`;
     
     try {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "Authorization": `Basic ${auth}`
-        }
+          "Authorization": `Basic ${storage.authToken}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        mode: "no-cors"
       });
       
       if (!response.ok) throw new Error("Network response was not ok");
@@ -20,16 +27,23 @@ async function getTestCases(testRunId) {
   }
   
   async function updateTestCaseStatus(testRunId, testCaseId, statusId) {
-    const auth = btoa("sarah.ramadhanip@flip.id:C7ysebutvZkf2bM");
-    const url = `https://flipid.testrail.io/index.php?/api/v2/add_result_for_case/${testRunId}/${testCaseId}`;
+    const storage = await chrome.storage.local.get(['testrailUrl', 'authToken']);
+    if (!storage.testrailUrl || !storage.authToken) {
+        throw new Error("TestRail URL and auth token must be configured");
+    }
     
+    const url = `${storage.testrailUrl}/index.php?/api/v2/add_result_for_case/${testRunId}/${testCaseId}`;    
+
     try {
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/json"
+          "Authorization": `Basic ${storage.authToken}`,
+          "Content-Type": "application/json",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
         },
+        mode: "no-cors",
         body: JSON.stringify({ status_id: statusId })
       });
       

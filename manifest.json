@@ -5,6 +5,9 @@
     "version": "1.0",
     "description": "Efficiently fetch and update test cases in TestRail",
     "permissions": ["storage", "activeTab"],
+    "host_permissions": [
+        "*://*.testrail.io/*"
+    ],
     "action": {
       "default_popup": "popup.html",
       "default_icon": {
