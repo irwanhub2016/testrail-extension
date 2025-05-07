@@ -25,29 +25,25 @@ This Chrome extension helps you manage your TestRail test cases and test runs di
 6. Update test case statuses by clicking the appropriate buttons
 
 ## Screenshots
-To add screenshots of the extension in action:
-
-1. Take screenshots of the extension popup showing:
-   
-   - The authentication screen
-   - Test run statistics view
-   - Test cases list with status buttons
-   - Offline mode with pending updates
-2. Save the screenshots in the project directory (e.g., screenshots/auth-screen.png )
-3. Add them to this README using the following format:
 
 ![ Authentication Screen ]( screenshots/ss1.png )
 
-*Caption: Authentication screen where users enter TestRail
+*Caption: Authentication Screen*
 
-credentials*
-
-![ Test Run Statistics ]( screenshots/test-run-stats.png )
+![ Test Run Statistics ]( screenshots/ss2.png )
 
 *Caption: Test run statistics showing pass/fail percentages*
 
 ## Offline Support
 The extension works offline and will store any status updates you make while disconnected. When you're back online, it will automatically synchronize the pending updates with TestRail.
+
+![ Manual Sync to Update Result ]( screenshots/ss3.png )
+
+*Caption: Authentication Screen*
+
+![ Update result when offline ]( screenshots/ss4.png )
+
+*Caption: Test run statistics showing pass/fail percentages*
 
 ## Security
 Your TestRail credentials are stored securely in Chrome's local storage and are only used for API requests to your TestRail instance.
