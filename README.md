@@ -37,7 +37,7 @@ This Chrome extension helps you manage your TestRail test cases and test runs di
 ## Offline Support
 The extension works offline and will store any status updates you make while disconnected. When you're back online, it will automatically synchronize the pending updates with TestRail.
 
-<img src="screenshots/ss3.png" width="600" alt="Manual Sync to Update Result">
+<img src="![image](https://github.com/user-attachments/assets/4f4677d2-dd8a-43c4-a057-8b39707980f0)" width="600" alt="Manual Sync to Update Result">
 
 *Caption: Authentication Screen*
 
